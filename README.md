@@ -140,6 +140,7 @@ The resulting predictor enables **fast, hardware-specific latency estimation** w
 
 ## Repository Structure
 
+```text
 LLMOnEdge/
 ├── engines/ # TensorRT serialized engines (.plan)
 ├── onnx/ # Exported ONNX models
@@ -154,7 +155,7 @@ LLMOnEdge/
 ├── .gitignore
 ├── README.md
 └── requirements.txt
-
+```
 ---
 
 ## Reproducibility Notes
