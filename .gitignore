@@ -9,3 +9,4 @@ onnx/
 .hf_datasets_cache/
 .hf_home/
 *.parquet
+src/prompts.parquet
