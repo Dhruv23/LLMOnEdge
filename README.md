@@ -115,8 +115,9 @@ The repository includes a rich set of plots in the `plots/` directory, including
 
 An interactive summary dashboard is available at:
 
+```text
 plots/index.html
-
+```
 
 ---
 
