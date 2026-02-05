@@ -3,3 +3,9 @@ TensorRT-LLM/
 models/gpt2-medium/
 checkpoints/
 *.safetensors
+.venv
+engines/
+onnx/
+.hf_datasets_cache/
+.hf_home/
+*.parquet
