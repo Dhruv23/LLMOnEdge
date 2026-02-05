@@ -2,3 +2,4 @@
 TensorRT-LLM/
 models/gpt2-medium/
 checkpoints/
+*.safetensors
