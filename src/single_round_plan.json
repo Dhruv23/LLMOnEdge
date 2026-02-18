@@ -1,32 +1,26 @@
 {
-  "definition": "ONE decode step with KV-cache (input_ids=1 token) at context length L",
-  "model_inputs": {
-    "input_ids": "shape = [B, 1] (B=1)  # one token decode",
-    "position_ids": "shape = [B, 1], value ~= L-1",
-    "attention_mask": "shape = [B, L]",
-    "past_key_values.*.key": "shape = [B, NHEAD, L-1, HDIM]",
-    "past_key_values.*.value": "shape = [B, NHEAD, L-1, HDIM]",
-    "outputs": {
-      "logits": "shape = [B, 1, vocab]",
-      "present.*": "shape = [B, NHEAD, L, HDIM]  # appends one token to cache"
-    }
-  },
   "contexts": [
-    16,
-    32,
+    27,
+    31,
+    36,
+    43,
     48,
-    64,
-    96,
-    128,
-    192,
-    256,
-    384,
-    512
+    54,
+    60,
+    67,
+    74,
+    82,
+    89,
+    97,
+    106,
+    116,
+    129,
+    143,
+    157,
+    173,
+    195,
+    250
   ],
-  "notes": [
-    "This matches your exported ONNX inputs (input_ids, position_ids, attention_mask, past_key_values.*).",
-    "For each prompt of token length T, you can set L = min(T, 512) for measuring one decode step at that context.",
-    "Step 6 will allocate device buffers for MAX shapes and then run enqueue with the chosen L (dynamic shapes).",
-    "If you want to measure 'prefill' (processing the full prompt) you'll need a different engine/profile (input_ids length = L)."
-  ]
+  "source": "amazon_polarity",
+  "notes": "Generated from 2000 real review lengths."
 }
