@@ -21,6 +21,7 @@ import re
 import time
 import threading
 import pynvml
+import psutil
 from datetime import datetime
 
 # GPT-2 Medium constants
@@ -37,6 +38,12 @@ class GPUMonitor:
         self.max_used_mem = 0
         self.peak_pcie_tx = 0
         self.peak_pcie_rx = 0
+        self.cpu_utilization_pct = 0.0
+        self.sys_ram_used_bytes = 0
+        self.sys_ram_utilization_pct = 0.0
+        self.cpu_samples = []
+        self.ram_used_samples = []
+        self.ram_util_samples = []
         self.thread = None
 
     def _monitor_loop(self):
@@ -51,12 +58,23 @@ class GPUMonitor:
             if tx > self.peak_pcie_tx: self.peak_pcie_tx = tx
             if rx > self.peak_pcie_rx: self.peak_pcie_rx = rx
 
+            # System CPU and RAM
+            self.cpu_samples.append(psutil.cpu_percent(interval=None))
+            sys_mem = psutil.virtual_memory()
+            self.ram_used_samples.append(sys_mem.used)
+            self.ram_util_samples.append(sys_mem.percent)
+
             time.sleep(self.poll_interval)
 
     def start(self):
         self.max_used_mem = 0
         self.peak_pcie_tx = 0
         self.peak_pcie_rx = 0
+        self.cpu_samples = []
+        self.ram_used_samples = []
+        self.ram_util_samples = []
+        # Prime the cpu_percent call
+        psutil.cpu_percent(interval=None)
         self.keep_running = True
         self.thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self.thread.start()
@@ -68,11 +86,18 @@ class GPUMonitor:
         
         total_mem = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
         
+        avg_cpu = sum(self.cpu_samples) / len(self.cpu_samples) if self.cpu_samples else 0.0
+        avg_ram_used = sum(self.ram_used_samples) / len(self.ram_used_samples) if self.ram_used_samples else 0
+        avg_ram_util = sum(self.ram_util_samples) / len(self.ram_util_samples) if self.ram_util_samples else 0.0
+
         return {
             "max_used_mem_bytes": self.max_used_mem,
             "mem_utilization_pct": (self.max_used_mem / total_mem) * 100,
             "peak_pcie_tx_kbps": self.peak_pcie_tx,
-            "peak_pcie_rx_kbps": self.peak_pcie_rx
+            "peak_pcie_rx_kbps": self.peak_pcie_rx,
+            "cpu_utilization_pct": avg_cpu,
+            "sys_ram_used_bytes": int(avg_ram_used),
+            "sys_ram_utilization_pct": avg_ram_util
         }
 
 def load_plan(plan_path: str) -> dict:
@@ -153,11 +178,13 @@ def main():
     fieldnames = [
         "timestamp", "engine", "ctx_len", "past_len", "run_id", "inference_idx", 
         "latency_ms", "compute_ms", "device_exec_mem_bytes", "device_ctx_mem_bytes", 
-        "max_used_mem_bytes", "mem_utilization_pct", "peak_pcie_tx_kbps", "peak_pcie_rx_kbps"
+        "max_used_mem_bytes", "mem_utilization_pct", "peak_pcie_tx_kbps", "peak_pcie_rx_kbps",
+        "cpu_utilization_pct", "sys_ram_used_bytes", "sys_ram_utilization_pct"
     ]
     new_memory_fields = [
         "device_exec_mem_bytes", "device_ctx_mem_bytes", "max_used_mem_bytes", 
-        "mem_utilization_pct", "peak_pcie_tx_kbps", "peak_pcie_rx_kbps"
+        "mem_utilization_pct", "peak_pcie_tx_kbps", "peak_pcie_rx_kbps",
+        "cpu_utilization_pct", "sys_ram_used_bytes", "sys_ram_utilization_pct"
     ]
 
     # --- MIGRATION BLOCK ---
@@ -250,7 +277,10 @@ def main():
                             "max_used_mem_bytes": hw_stats["max_used_mem_bytes"],
                             "mem_utilization_pct": f"{hw_stats['mem_utilization_pct']:.2f}",
                             "peak_pcie_tx_kbps": hw_stats["peak_pcie_tx_kbps"],
-                            "peak_pcie_rx_kbps": hw_stats["peak_pcie_rx_kbps"]
+                            "peak_pcie_rx_kbps": hw_stats["peak_pcie_rx_kbps"],
+                            "cpu_utilization_pct": f"{hw_stats['cpu_utilization_pct']:.2f}",
+                            "sys_ram_used_bytes": hw_stats["sys_ram_used_bytes"],
+                            "sys_ram_utilization_pct": f"{hw_stats['sys_ram_utilization_pct']:.2f}"
                         }
                         writer.writerow(row)
                         total_points += 1
