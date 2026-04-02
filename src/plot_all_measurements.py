@@ -247,6 +247,57 @@ def plot_growth_curve(df, out_dir):
     plt.savefig(output_plot, dpi=200, bbox_inches='tight')
     plt.close()
 
+def plot_system_resource_metrics(df, out_dir):
+    print("[INFO] Generating System Resource plots (CPU/RAM)...")
+    os.makedirs(out_dir, exist_ok=True)
+    all_contexts = sorted(df['ctx_len'].unique())
+
+    # Filter out -1 data
+    df_valid = df[(df['cpu_utilization_pct'] > -1) &
+                  (df['sys_ram_used_bytes'] > -1) &
+                  (df['sys_ram_utilization_pct'] > -1)].copy()
+
+    if df_valid.empty:
+        print("[WARNING] No valid data for system resource metrics (> -1). Skipping...")
+        return
+
+    # 1. CPU Utilization vs Context Length
+    plt.figure(figsize=(12, 6))
+    mean_cpu = df_valid.groupby('ctx_len')['cpu_utilization_pct'].mean().reset_index()
+
+    # Scatter samples
+    sampled_cpu = df_valid.sample(frac=1, random_state=42).groupby('ctx_len').head(10)
+    plt.scatter(sampled_cpu['ctx_len'], sampled_cpu['cpu_utilization_pct'], alpha=0.4, color='orange', s=20)
+    plt.plot(mean_cpu['ctx_len'], mean_cpu['cpu_utilization_pct'], color='darkred', linewidth=2, label='Mean CPU Utilization')
+
+    plt.title("CPU Utilization vs Context Length", fontsize=14)
+    plt.xlabel("Context Length (Tokens)", fontsize=12)
+    plt.ylabel("CPU Utilization (%)", fontsize=12)
+    plt.xticks(all_contexts, rotation=45, fontsize=8)
+    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.legend(loc='upper left')
+    plt.savefig(os.path.join(out_dir, "CPU_Utilization_vs_ContextLength.png"), dpi=200, bbox_inches='tight')
+    plt.close()
+
+    # 2. System RAM Usage vs Context Length
+    plt.figure(figsize=(12, 6))
+    df_valid['sys_ram_gb'] = df_valid['sys_ram_used_bytes'] / (1024**3)
+    mean_ram = df_valid.groupby('ctx_len')['sys_ram_gb'].mean().reset_index()
+
+    # Scatter samples
+    sampled_ram = df_valid.sample(frac=1, random_state=42).groupby('ctx_len').head(10)
+    plt.scatter(sampled_ram['ctx_len'], sampled_ram['sys_ram_gb'], alpha=0.4, color='cyan', s=20)
+    plt.plot(mean_ram['ctx_len'], mean_ram['sys_ram_gb'], color='teal', linewidth=2, label='Mean System RAM Usage')
+
+    plt.title("System RAM Usage vs Context Length", fontsize=14)
+    plt.xlabel("Context Length (Tokens)", fontsize=12)
+    plt.ylabel("System RAM (GB)", fontsize=12)
+    plt.xticks(all_contexts, rotation=45, fontsize=8)
+    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.legend(loc='upper left')
+    plt.savefig(os.path.join(out_dir, "System_RAM_Usage_vs_ContextLength.png"), dpi=200, bbox_inches='tight')
+    plt.close()
+
 def plot_oversubscription_metrics(df, out_dir):
     print("[INFO] Generating Oversubscription plots...")
     os.makedirs(out_dir, exist_ok=True)
@@ -350,7 +401,7 @@ def main():
         print(f"[ERROR] Could not find {csv_path} or training_dataset_large.csv")
         return
 
-    for col in ['ctx_len', 'compute_ms', 'max_used_mem_bytes', 'mem_utilization_pct', 'peak_pcie_tx_kbps', 'peak_pcie_rx_kbps']:
+    for col in ['ctx_len', 'compute_ms', 'max_used_mem_bytes', 'mem_utilization_pct', 'peak_pcie_tx_kbps', 'peak_pcie_rx_kbps', 'cpu_utilization_pct', 'sys_ram_used_bytes', 'sys_ram_utilization_pct']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
@@ -395,6 +446,9 @@ def main():
 
     # Generate Oversubscription plots
     plot_oversubscription_metrics(df, base_plot_dir)
+
+    # Generate System Resource plots (CPU/RAM)
+    plot_system_resource_metrics(df, base_plot_dir)
 
     print(f"\n✅ All script executions finished. Check the {base_plot_dir} folder.")
 
