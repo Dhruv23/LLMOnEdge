@@ -1,10 +1,8 @@
 {
   "contexts": [
-    5000, 
-    10000,
-    15000,
-    20000
+    5000
   ],
   "source": "amazon_polarity",
   "notes": "Generated from 2000 real review lengths."
 }
+

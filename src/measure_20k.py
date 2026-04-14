@@ -136,7 +136,7 @@ def main():
     args = ap.parse_args()
 
     # New Test Points: 3 between 15k and 20k + a 30k point
-    TARGET_CONTEXTS = [16250, 17500, 18750, 30000]
+    TARGET_CONTEXTS = [16250, 17500, 18750, 20000, 30000]
     ITERATIONS_PER_CTX = 10
     
     fieldnames = [

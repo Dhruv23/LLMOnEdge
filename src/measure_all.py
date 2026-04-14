@@ -205,10 +205,15 @@ def main():
                 
                 rows_migrated = 0
                 for row in reader:
-                    # Fill all missing memory fields with -1 (Dummy value for ML)
+                    # Catch and remove any trailing unmapped columns 
+                    if None in row:
+                        del row[None]
+
+                    # Backfill new memory fields
                     for field in new_memory_fields:
                         if field not in row:
                             row[field] = -1
+                            
                     writer.writerow(row)
                     rows_migrated += 1
             
