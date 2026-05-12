@@ -1,0 +1,9 @@
+dhruv@dhruv-linux:~/research/LLMOnEdge/src$ nsys stats --report cuda_gpu_trace,nvtx_pushpop_trace gpt2_gating_profile.nsys-rep --format csv --output .
+
+NOTICE: Existing SQLite export found: gpt2_gating_profile.sqlite
+        It is assumed file was previously exported from: gpt2_gating_profile.nsys-rep
+        Consider using --force-export=true if needed.
+
+Processing [gpt2_gating_profile.sqlite] with [/opt/nvidia/nsight-systems/2025.6.3/host-linux-x64/reports/cuda_gpu_trace.py] to [gpt2_gating_profile_cuda_gpu_trace.csv]... PROCESSED
+
+Processing [gpt2_gating_profile.sqlite] with [/opt/nvidia/nsight-systems/2025.6.3/host-linux-x64/reports/nvtx_pushpop_trace.py] to [gpt2_gating_profile_nvtx_pushpop_trace.csv]... PROCESSED

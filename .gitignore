@@ -10,3 +10,5 @@ onnx/
 .hf_home/
 *.parquet
 src/prompts.parquet
+vllm_env
+TENSORRT_OLD
