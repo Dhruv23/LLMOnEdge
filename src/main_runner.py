@@ -13,26 +13,44 @@ class CorunnerThread(threading.Thread):
         self.throughput_data = [] # Store (start_time, loop_duration)
         
     def run(self):
-        stream = cp.cuda.Stream(non_blocking=True)
+        # Get lowest priority available
+        priority_range = cp.cuda.runtime.streamGetPriorityRange()
+        lowest_priority = priority_range[0]
+        stream = cp.cuda.Stream(non_blocking=True, priority=lowest_priority)
         
         # NVTX marker for the background thread initialization
         nvtx.range_push("Corunner_Init")
         with stream:
             # Allocate matrices
-            a = cp.random.rand(1024, 1024, dtype=cp.float32)
-            b = cp.random.rand(1024, 1024, dtype=cp.float32)
-            nvtx.range_pop()
+            n = 1024
+            tile_size = 64
+            a = cp.random.rand(n, n, dtype=cp.float32)
+            b = cp.random.rand(n, n, dtype=cp.float32)
+        nvtx.range_pop()
+
+        while not self.stop_event.is_set():
+            start_time = time.perf_counter()
+
+            # Interference workload - micro-sliced
+            with stream:
+                for i in range(0, n, tile_size):
+                    for j in range(0, n, tile_size):
+                        # Synthetic background noise: simple matmul of tiles
+                        a_tile = a[i:i+tile_size, j:j+tile_size]
+                        b_tile = b[i:i+tile_size, j:j+tile_size]
+                        c_tile = cp.matmul(a_tile, b_tile)
+                        d_tile = cp.sin(c_tile)
+
+                # Record event at the end of the entire tile queue
+                event = cp.cuda.Event()
+                event.record(stream)
+
+            # Asynchronous polling to avoid GIL block
+            while not event.done:
+                time.sleep(1e-4)
             
-            while not self.stop_event.is_set():
-                start_time = time.perf_counter()
-                
-                # Interference workload
-                c = cp.matmul(a, b)
-                d = cp.sin(c)
-                stream.synchronize() 
-                
-                end_time = time.perf_counter()
-                self.throughput_data.append((start_time, end_time - start_time))
+            end_time = time.perf_counter()
+            self.throughput_data.append((start_time, end_time - start_time))
 
     def stop(self):
         self.stop_event.set()
@@ -43,7 +61,6 @@ def profile_time_gating():
     print("Loading vLLM Engine...")
     llm = LLM(
         model="gpt2-medium", 
-        enforce_eager=True,
         gpu_memory_utilization=0.6,
         max_num_seqs=1,
         max_model_len=1024
